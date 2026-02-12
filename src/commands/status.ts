@@ -20,9 +20,6 @@ function formatCountdown(ms: number): string {
 }
 
 function decodePath(encoded: string): string {
-  // e.g. "-home-moaz-claude-heartbeat" → try to resolve actual path
-  // Replace leading dash with /, then try each dash as a potential /
-  // We validate by checking if .claude/heartbeat/daemon.pid exists there
   return "/" + encoded.slice(1).replace(/-/g, "/");
 }
 
@@ -38,14 +35,11 @@ async function findAllDaemons(): Promise<{ path: string; pid: string }[]> {
   }
 
   for (const dir of dirs) {
-    // Try to find daemon.pid in each possible project path
-    // The dir name is an encoded path, but we can just scan for pid files directly
     const candidatePath = decodePath(dir);
     const pidFile = join(candidatePath, ".claude", "heartbeat", "daemon.pid");
 
     try {
       const pid = (await readFile(pidFile, "utf-8")).trim();
-      // Check if process is alive
       process.kill(Number(pid), 0);
       results.push({ path: candidatePath, pid });
     } catch {
@@ -70,8 +64,7 @@ async function showAll(): Promise<void> {
   }
 }
 
-async function main(): Promise<boolean> {
-  // Check daemon process
+async function showStatus(): Promise<boolean> {
   let daemonRunning = false;
   let pid = "";
   try {
@@ -87,7 +80,6 @@ async function main(): Promise<boolean> {
     return false;
   }
 
-  // Running — show full status
   console.log(`\x1b[32m● Daemon is running\x1b[0m (PID ${pid})`);
 
   try {
@@ -131,13 +123,11 @@ async function main(): Promise<boolean> {
   return true;
 }
 
-// CLI entry
-const args = process.argv.slice(2);
-
-if (args.includes("--all")) {
-  showAll();
-} else {
-  main().then((running) => {
+export async function status(args: string[]) {
+  if (args.includes("--all")) {
+    await showAll();
+  } else {
+    const running = await showStatus();
     process.exit(running ? 0 : 1);
-  });
+  }
 }

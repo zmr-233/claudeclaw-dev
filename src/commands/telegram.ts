@@ -1,6 +1,6 @@
 import { join } from "path";
 import { mkdir } from "fs/promises";
-import { getOrCreateSession, deleteSession } from "./sessions";
+import { getOrCreateSession, deleteSession } from "../sessions";
 
 // --- Config ---
 
@@ -146,10 +146,8 @@ async function handleMessage(
   const chatId = message.chat.id;
   const text = message.text;
 
-  // Only DMs
   if (message.chat.type !== "private") return;
 
-  // Auth check
   if (config.allowedUserIds.length > 0 && !config.allowedUserIds.includes(userId)) {
     await sendMessage(config.token, chatId, "Unauthorized.");
     return;
@@ -157,7 +155,6 @@ async function handleMessage(
 
   if (!text?.trim()) return;
 
-  // /start command
   if (text.trim() === "/start") {
     await sendMessage(
       config.token,
@@ -167,7 +164,6 @@ async function handleMessage(
     return;
   }
 
-  // /reset command
   if (text.trim() === "/reset") {
     await deleteSession(userId);
     await sendMessage(config.token, chatId, "Session cleared. Next message starts fresh.");
@@ -178,7 +174,6 @@ async function handleMessage(
   const label = message.from.username ?? String(userId);
   console.log(`[${new Date().toLocaleTimeString()}] ${label}: "${text.slice(0, 60)}${text.length > 60 ? "..." : ""}" (session: ${sessionId.slice(0, 8)}, ${isNew ? "new" : "resumed"})`);
 
-  // Show typing indicator
   await sendTyping(config.token, chatId);
 
   try {
@@ -222,7 +217,6 @@ async function poll(config: TelegramConfig): Promise<void> {
       for (const update of data.result) {
         offset = update.update_id + 1;
         if (update.message) {
-          // Fire-and-forget so polling isn't blocked by slow Claude responses
           handleMessage(config, update.message).catch((err) => {
             console.error(`[Telegram] Unhandled: ${err}`);
           });
@@ -241,9 +235,7 @@ async function poll(config: TelegramConfig): Promise<void> {
 process.on("SIGTERM", () => { running = false; });
 process.on("SIGINT", () => { running = false; });
 
-async function main() {
+export async function telegram() {
   const config = await loadConfig();
   await poll(config);
 }
-
-main();

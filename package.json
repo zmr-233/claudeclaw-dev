@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
-    "telegram": "bun run src/telegram.ts",
-    "status": "bun run src/status.ts"
+    "telegram": "bun run src/index.ts telegram",
+    "status": "bun run src/index.ts status"
   },
   "devDependencies": {
     "@types/bun": "^1.3.9"

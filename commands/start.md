@@ -4,7 +4,7 @@ description: Start the heartbeat daemon
 
 Start the heartbeat daemon for this project. Follow these steps exactly:
 
-1. **Check if already running**: Run `bun run ${CLAUDE_PLUGIN_ROOT}/src/status.ts`. If it reports the daemon is running, tell the user and exit.
+1. **Check if already running**: Run `bun run ${CLAUDE_PLUGIN_ROOT}/src/index.ts status`. If it reports the daemon is running, tell the user and exit.
 
 2. **Ensure Bun is installed**: Run `which bun`. If it's not found:
    - Tell the user Bun is required and will be auto-installed.
@@ -21,13 +21,13 @@ Start the heartbeat daemon for this project. Follow these steps exactly:
 
 3. **Initialize config if needed**: If `.claude/heartbeat/` doesn't exist:
    - Create `.claude/heartbeat/`, `.claude/heartbeat/jobs/`, `.claude/heartbeat/logs/`
-   - Write `.claude/heartbeat/settings.json`:
+   - Write `.claude/heartbeat/settings.json` with defaults:
      ```json
      {
        "heartbeat": {
-         "enabled": true,
+         "enabled": false,
          "interval": 15,
-         "prompt": "Check system health and report any issues."
+         "prompt": ""
        },
        "telegram": {
          "token": "",
@@ -35,13 +35,6 @@ Start the heartbeat daemon for this project. Follow these steps exactly:
          "projectPath": ""
        }
      }
-     ```
-   - Write `.claude/heartbeat/jobs/example.md`:
-     ```
-     ---
-     schedule: "0 9 * * *"
-     ---
-     Review yesterday's git commits and summarize.
      ```
 
 4. **Launch daemon**: Run this command to start the daemon in the background:
@@ -51,7 +44,7 @@ Start the heartbeat daemon for this project. Follow these steps exactly:
 
 5. **Report**: Print the ASCII art below then show the PID and status info.
 
-IMPORTANT: The 🦞 emoji takes 2 character widths in monospace. You MUST copy the exact spacing below character-for-character. Do NOT add or remove any spaces. Output it inside a markdown code block:
+CRITICAL: Output the ASCII art block below EXACTLY as-is inside a markdown code block. The 🦞 emoji is 2 columns wide in monospace — the spacing already accounts for this. Do NOT re-indent, re-align, or adjust ANY whitespace. Copy every character verbatim. Only replace `<PID>` and `<WORKING_DIR>` with actual values. If you modify any spaces, the art WILL be misaligned.
 
 ```
       🦞  ▐▛███▜▌  🦞
@@ -59,6 +52,27 @@ IMPORTANT: The 🦞 emoji takes 2 character widths in monospace. You MUST copy t
            ▘▘ ▝▝
 
    HELLO, I AM YOUR CLAUDECLAW!
+
+   Daemon is running! PID: <PID> | Dir: <WORKING_DIR>
+
+   1. Enable heartbeat?       (yes/no)
+   2. Configure Telegram?      (yes/no)
+
+   /heartbeat:status  - check status
+   /heartbeat:stop    - stop daemon
 ```
 
-Then tell the user the daemon is running and show the PID. Mention they can use `/heartbeat:status` to check on it and `/heartbeat:stop` to stop it.
+After displaying the above, ask the user to answer each question:
+
+- **If user answers yes to #1 (Enable heartbeat)**:
+  - Ask: "What prompt should the heartbeat run on each check?"
+  - Ask: "How often should it run? (in minutes, default: 15)"
+  - Set `heartbeat.enabled` to `true`, `heartbeat.prompt` to their answer, `heartbeat.interval` to their answer (or `15` if they accept default).
+
+- **If user answers yes to #2 (Configure Telegram)**:
+  - Ask: "What is your Telegram bot token?"
+  - Ask: "What are the allowed Telegram user IDs? (comma-separated)"
+  - Ask: "What is the project path?"
+  - Set `telegram.token`, `telegram.allowedUserIds` (as array of numbers), and `telegram.projectPath` accordingly.
+
+Update `.claude/heartbeat/settings.json` with their answers.
