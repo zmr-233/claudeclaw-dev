@@ -4,9 +4,7 @@ description: Start the heartbeat daemon
 
 Start the heartbeat daemon for this project. Follow these steps exactly:
 
-1. **Check if already running**: Run `bun run ${CLAUDE_PLUGIN_ROOT}/src/index.ts status`. If it reports the daemon is running, tell the user and exit.
-
-2. **Ensure Bun is installed**: Run `which bun`. If it's not found:
+1. **Ensure Bun is installed**: Run `which bun`. If it's not found:
    - Tell the user Bun is required and will be auto-installed.
    - Run:
      ```bash
@@ -19,29 +17,14 @@ Start the heartbeat daemon for this project. Follow these steps exactly:
    - Verify `bun` is now available with `which bun`. If still not found, tell the user installation failed and to install manually from https://bun.sh, then exit.
    - Tell the user Bun was auto-installed successfully.
 
-3. **Initialize config if needed**: If `.claude/heartbeat/` doesn't exist:
-   - Create `.claude/heartbeat/`, `.claude/heartbeat/jobs/`, `.claude/heartbeat/logs/`
-   - Write `.claude/heartbeat/settings.json` with defaults:
-     ```json
-     {
-       "heartbeat": {
-         "enabled": false,
-         "interval": 15,
-         "prompt": ""
-       },
-       "telegram": {
-         "token": "",
-         "allowedUserIds": []
-       }
-     }
-     ```
-
-4. **Launch daemon**: Run this command to start the daemon in the background:
+2. **Launch daemon**: The daemon auto-initializes config and has a built-in safeguard against duplicate instances. Start it in the background:
    ```bash
-   nohup bun run ${CLAUDE_PLUGIN_ROOT}/src/index.ts > .claude/heartbeat/logs/daemon.log 2>&1 &
+   mkdir -p .claude/heartbeat/logs && nohup bun run ${CLAUDE_PLUGIN_ROOT}/src/index.ts > .claude/heartbeat/logs/daemon.log 2>&1 & echo $!
    ```
+   Use the description "🦞 Starting ClaudeClaw server" for this command.
+   Wait 1 second, then check `cat .claude/heartbeat/logs/daemon.log`. If it contains "Aborted: daemon already running", tell the user and exit.
 
-5. **Report**: Print the ASCII art below then show the PID and status info.
+3. **Report**: Print the ASCII art below then show the PID and status info.
 
 CRITICAL: Output the ASCII art block below EXACTLY as-is inside a markdown code block. Do NOT re-indent, re-align, or adjust ANY whitespace. Copy every character verbatim. Only replace `<PID>` and `<WORKING_DIR>` with actual values.
 
@@ -63,17 +46,58 @@ CRITICAL: Output the ASCII art block below EXACTLY as-is inside a markdown code 
 /heartbeat:stop    - stop daemon
 ```
 
-After displaying the above, ask the user to answer each question:
+After displaying the above, use the **AskUserQuestion** tool to ask both questions at once:
 
-- **If user answers yes to #1 (Enable heartbeat)**:
-  - Ask: "What prompt should the heartbeat run on each check?"
-  - Ask: "How often should it run? (in minutes, default: 15)"
-  - Set `heartbeat.enabled` to `true`, `heartbeat.prompt` to their answer, `heartbeat.interval` to their answer (or `15` if they accept default).
+- Question 1: "Enable heartbeat?" (header: "Heartbeat", options: "Yes" / "No")
+- Question 2: "Configure Telegram?" (header: "Telegram", options: "Yes" / "No")
 
-- **If user answers yes to #2 (Configure Telegram)**:
-  - Ask: "What is your Telegram bot token?"
-  - Ask: "What are the allowed Telegram user IDs? (comma-separated)"
+Then, based on their answers:
+
+- **If yes to heartbeat**: Use AskUserQuestion again with two questions:
+  - "What prompt should the heartbeat run on each check?" (header: "Prompt", options: provide 2-3 example prompts relevant to the project)
+  - "How often should it run in minutes?" (header: "Interval", options: "5", "15 (Recommended)", "30", "60")
+  - Set `heartbeat.enabled` to `true`, `heartbeat.prompt` to their answer, `heartbeat.interval` to their answer.
+
+- **If yes to Telegram**: Use AskUserQuestion again with two questions:
+  - "What is your Telegram bot token?" (header: "Bot token", options: let user type via Other)
+  - "What are the allowed Telegram user IDs?" (header: "User IDs", options: let user type via Other)
   - Set `telegram.token` and `telegram.allowedUserIds` (as array of numbers) accordingly.
   - Note: Telegram bot runs in-process with the daemon. All components (heartbeat, cron, telegram) share one Claude session.
 
-Update `.claude/heartbeat/settings.json` with their answers.
+Update `.claude/heartbeat/settings.json` with their answers. The daemon hot-reloads settings and jobs every 30 seconds — no restart needed.
+
+---
+
+## Reference: File Formats
+
+### Settings — `.claude/heartbeat/settings.json`
+```json
+{
+  "heartbeat": {
+    "enabled": true,
+    "interval": 15,
+    "prompt": "Check git status and summarize recent changes."
+  },
+  "telegram": {
+    "token": "123456:ABC-DEF...",
+    "allowedUserIds": [123456789]
+  }
+}
+```
+- `heartbeat.enabled` — whether the recurring heartbeat runs
+- `heartbeat.interval` — minutes between heartbeat runs
+- `heartbeat.prompt` — the prompt sent to Claude on each heartbeat
+- `telegram.token` — Telegram bot token from @BotFather
+- `telegram.allowedUserIds` — array of numeric Telegram user IDs allowed to interact
+
+### Jobs — `.claude/heartbeat/jobs/<name>.md`
+Jobs are markdown files with cron schedule frontmatter and a prompt body:
+```markdown
+---
+schedule: "0 9 * * *"
+---
+Your prompt here. Claude will run this at the scheduled time.
+```
+- Schedule uses standard cron syntax: `minute hour day-of-month month day-of-week`
+- The filename (without `.md`) becomes the job name
+- Jobs are loaded at daemon startup from `.claude/heartbeat/jobs/`

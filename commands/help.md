@@ -10,6 +10,8 @@ Display this help information to the user:
 - `/heartbeat:start` — Initialize config and start the daemon
 - `/heartbeat:stop` — Stop the running daemon
 - `/heartbeat:status` — Show daemon status, countdowns, and config
+- `/heartbeat:config` — View or modify heartbeat settings (interval, prompt, telegram)
+- `/heartbeat:jobs` — Create, list, edit, or delete cron jobs
 - `/heartbeat:logs` — Show recent execution logs (accepts count or job name filter)
 - `/heartbeat:telegram` — Show Telegram bot status and sessions (use `clear` to reset sessions)
 - `/heartbeat:help` — Show this help message

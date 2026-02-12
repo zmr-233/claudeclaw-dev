@@ -3,6 +3,7 @@ import { join } from "path";
 import { getOrCreateSession } from "./sessions";
 
 const LOGS_DIR = join(process.cwd(), ".claude/heartbeat/logs");
+const SYSTEM_PROMPT_FILE = join(process.cwd(), "prompts", "claudeclaw.md");
 
 export interface RunResult {
   stdout: string;
@@ -33,6 +34,14 @@ async function execClaude(name: string, prompt: string): Promise<RunResult> {
   const args = ["claude", "-p", prompt, "--output-format", "text"];
   if (isNew) {
     args.push("--session-id", sessionId);
+    try {
+      const systemPrompt = await Bun.file(SYSTEM_PROMPT_FILE).text();
+      if (systemPrompt.trim()) {
+        args.push("--system-prompt", systemPrompt.trim());
+      }
+    } catch {
+      // no system prompt file, continue without it
+    }
   } else {
     args.push("--resume", sessionId);
   }

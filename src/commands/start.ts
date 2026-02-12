@@ -4,8 +4,9 @@ import { run } from "../runner";
 import { writeState, type StateData } from "../statusline";
 import { cronMatches, nextCronMatch } from "../cron";
 import { loadJobs } from "../jobs";
-import { writePidFile, cleanupPidFile } from "../pid";
-import { loadSettings } from "../config";
+import { writePidFile, cleanupPidFile, checkExistingDaemon } from "../pid";
+import { initConfig, loadSettings, reloadSettings, type Settings } from "../config";
+import type { Job } from "../jobs";
 
 const CLAUDE_DIR = join(process.cwd(), ".claude");
 const HEARTBEAT_DIR = join(CLAUDE_DIR, "heartbeat");
@@ -85,6 +86,14 @@ async function teardownStatusline() {
 // --- Main ---
 
 export async function start() {
+  const existingPid = await checkExistingDaemon();
+  if (existingPid) {
+    console.error(`\x1b[31mAborted: daemon already running in this directory (PID ${existingPid})\x1b[0m`);
+    console.error(`Use --stop first, or kill PID ${existingPid} manually.`);
+    process.exit(1);
+  }
+
+  await initConfig();
   const settings = await loadSettings();
   const jobs = await loadJobs();
 
@@ -105,49 +114,115 @@ export async function start() {
   console.log(`  Jobs loaded: ${jobs.length}`);
   jobs.forEach((j) => console.log(`    - ${j.name} [${j.schedule}]`));
 
-  // Start Telegram bot in-process if configured
-  let telegramSend: ((chatId: number, text: string) => Promise<void>) | null = null;
-  if (settings.telegram.token) {
-    const { startPolling, sendMessage } = await import("./telegram");
-    startPolling();
-    telegramSend = (chatId, text) => sendMessage(settings.telegram.token, chatId, text);
-    console.log("  Telegram: enabled");
-  } else {
-    console.log("  Telegram: not configured");
-  }
+  // --- Mutable state ---
+  let currentSettings: Settings = settings;
+  let currentJobs: Job[] = jobs;
+  let nextHeartbeatAt = 0;
+  let heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
 
-  async function runHeartbeat() {
-    const result = await run("heartbeat", settings.heartbeat.prompt);
-    if (telegramSend && settings.telegram.allowedUserIds.length > 0) {
-      const text = result.exitCode === 0
-        ? result.stdout || "(empty heartbeat)"
-        : `Heartbeat error (exit ${result.exitCode}): ${result.stderr || "Unknown"}`;
-      for (const userId of settings.telegram.allowedUserIds) {
-        telegramSend(userId, text).catch((err) =>
-          console.error(`[Telegram] Failed to forward heartbeat to ${userId}: ${err}`)
-        );
-      }
+  // --- Telegram ---
+  let telegramSend: ((chatId: number, text: string) => Promise<void>) | null = null;
+  let telegramToken = "";
+
+  async function initTelegram(token: string) {
+    if (token && token !== telegramToken) {
+      const { startPolling, sendMessage } = await import("./telegram");
+      startPolling();
+      telegramSend = (chatId, text) => sendMessage(token, chatId, text);
+      telegramToken = token;
+      console.log(`[${ts()}] Telegram: enabled`);
+    } else if (!token && telegramToken) {
+      telegramSend = null;
+      telegramToken = "";
+      console.log(`[${ts()}] Telegram: disabled`);
     }
   }
 
-  let nextHeartbeatAt = 0;
-  if (settings.heartbeat.enabled) {
-    const ms = settings.heartbeat.interval * 60_000;
-    runHeartbeat();
-    nextHeartbeatAt = Date.now() + ms;
-    setInterval(() => {
-      runHeartbeat();
-      nextHeartbeatAt = Date.now() + ms;
-    }, ms);
+  await initTelegram(currentSettings.telegram.token);
+  if (!telegramToken) console.log("  Telegram: not configured");
+
+  // --- Helpers ---
+  function ts() { return new Date().toLocaleTimeString(); }
+
+  function forwardToTelegram(label: string, result: { exitCode: number; stdout: string; stderr: string }) {
+    if (!telegramSend || currentSettings.telegram.allowedUserIds.length === 0) return;
+    const text = result.exitCode === 0
+      ? `${label ? `[${label}]\n` : ""}${result.stdout || "(empty)"}`
+      : `${label ? `[${label}] ` : ""}error (exit ${result.exitCode}): ${result.stderr || "Unknown"}`;
+    for (const userId of currentSettings.telegram.allowedUserIds) {
+      telegramSend(userId, text).catch((err) =>
+        console.error(`[Telegram] Failed to forward to ${userId}: ${err}`)
+      );
+    }
   }
 
+  // --- Heartbeat scheduling ---
+  function scheduleHeartbeat() {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+
+    if (!currentSettings.heartbeat.enabled || !currentSettings.heartbeat.prompt) {
+      nextHeartbeatAt = 0;
+      return;
+    }
+
+    const ms = currentSettings.heartbeat.interval * 60_000;
+
+    function tick() {
+      run("heartbeat", currentSettings.heartbeat.prompt).then((r) => forwardToTelegram("", r));
+      nextHeartbeatAt = Date.now() + ms;
+    }
+
+    tick();
+    heartbeatTimer = setInterval(tick, ms);
+  }
+
+  if (currentSettings.heartbeat.enabled) scheduleHeartbeat();
+
+  // --- Hot-reload loop (every 30s) ---
+  setInterval(async () => {
+    try {
+      const newSettings = await reloadSettings();
+      const newJobs = await loadJobs();
+
+      // Detect heartbeat config changes
+      const hbChanged =
+        newSettings.heartbeat.enabled !== currentSettings.heartbeat.enabled ||
+        newSettings.heartbeat.interval !== currentSettings.heartbeat.interval ||
+        newSettings.heartbeat.prompt !== currentSettings.heartbeat.prompt;
+
+      if (hbChanged) {
+        console.log(`[${ts()}] Config change detected — heartbeat: ${newSettings.heartbeat.enabled ? `every ${newSettings.heartbeat.interval}m` : "disabled"}`);
+        currentSettings = newSettings;
+        scheduleHeartbeat();
+      } else {
+        currentSettings = newSettings;
+      }
+
+      // Detect job changes
+      const jobNames = newJobs.map((j) => `${j.name}:${j.schedule}:${j.prompt}`).sort().join("|");
+      const oldJobNames = currentJobs.map((j) => `${j.name}:${j.schedule}:${j.prompt}`).sort().join("|");
+      if (jobNames !== oldJobNames) {
+        console.log(`[${ts()}] Jobs reloaded: ${newJobs.length} job(s)`);
+        newJobs.forEach((j) => console.log(`    - ${j.name} [${j.schedule}]`));
+      }
+      currentJobs = newJobs;
+
+      // Telegram changes
+      await initTelegram(newSettings.telegram.token);
+    } catch (err) {
+      console.error(`[${ts()}] Hot-reload error:`, err);
+    }
+  }, 30_000);
+
+  // --- Cron tick (every 60s) ---
   function updateState() {
     const now = new Date();
     const state: StateData = {
-      heartbeat: settings.heartbeat.enabled
+      heartbeat: currentSettings.heartbeat.enabled
         ? { nextAt: nextHeartbeatAt }
         : undefined,
-      jobs: jobs.map((job) => ({
+      jobs: currentJobs.map((job) => ({
         name: job.name,
         nextAt: nextCronMatch(job.schedule, now).getTime(),
       })),
@@ -159,20 +234,9 @@ export async function start() {
 
   setInterval(() => {
     const now = new Date();
-    for (const job of jobs) {
+    for (const job of currentJobs) {
       if (cronMatches(job.schedule, now)) {
-        run(job.name, job.prompt).then((result) => {
-          if (telegramSend && settings.telegram.allowedUserIds.length > 0) {
-            const text = result.exitCode === 0
-              ? `[${job.name}]\n${result.stdout || "(empty)"}`
-              : `[${job.name}] error (exit ${result.exitCode}): ${result.stderr || "Unknown"}`;
-            for (const userId of settings.telegram.allowedUserIds) {
-              telegramSend(userId, text).catch((err) =>
-                console.error(`[Telegram] Failed to forward ${job.name} to ${userId}: ${err}`)
-              );
-            }
-          }
-        });
+        run(job.name, job.prompt).then((r) => forwardToTelegram(job.name, r));
       }
     }
     updateState();
