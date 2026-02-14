@@ -122,6 +122,12 @@ function normalizeTelegramText(text: string): string {
   return text.replace(/\u2014/g, "-");
 }
 
+function extractTelegramCommand(text: string): string | null {
+  const firstToken = text.trim().split(/\s+/, 1)[0];
+  if (!firstToken.startsWith("/")) return null;
+  return firstToken.split("@", 1)[0].toLowerCase();
+}
+
 async function callApi<T>(token: string, method: string, body?: Record<string, unknown>): Promise<T> {
   const res = await fetch(`${API_BASE}${token}/${method}`, {
     method: "POST",
@@ -261,7 +267,8 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
     return;
   }
 
-  if (text.trim() === "/start") {
+  const command = extractTelegramCommand(text);
+  if (command === "/start") {
     await sendMessage(
       config.token,
       chatId,
@@ -270,7 +277,7 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
     return;
   }
 
-  if (text.trim() === "/reset") {
+  if (command === "/reset") {
     await resetSession();
     await sendMessage(config.token, chatId, "Global session reset. Next message starts fresh.");
     return;
