@@ -1,11 +1,12 @@
 import { join } from "path";
-import { readFile, readdir, stat } from "fs/promises";
+import { readFile, readdir, stat, writeFile } from "fs/promises";
 import type { Job } from "./jobs";
 import type { Settings } from "./config";
 import { peekSession } from "./sessions";
 
 const HEARTBEAT_DIR = join(process.cwd(), ".claude", "claudeclaw");
 const LOGS_DIR = join(HEARTBEAT_DIR, "logs");
+const SETTINGS_FILE = join(HEARTBEAT_DIR, "settings.json");
 
 export interface WebSnapshot {
   pid: number;
@@ -48,6 +49,17 @@ export function startWebUi(opts: {
 
       if (url.pathname === "/api/settings") {
         return json(sanitizeSettings(opts.getSnapshot().settings));
+      }
+
+      if (url.pathname === "/api/settings/heartbeat" && req.method === "POST") {
+        try {
+          const body = await req.json();
+          const enabled = Boolean((body as { enabled?: unknown }).enabled);
+          await setHeartbeatEnabled(enabled);
+          return json({ ok: true, enabled });
+        } catch (err) {
+          return json({ ok: false, error: String(err) });
+        }
       }
 
       if (url.pathname === "/api/jobs") {
@@ -182,6 +194,14 @@ async function readTail(path: string, lines: number): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+async function setHeartbeatEnabled(enabled: boolean): Promise<void> {
+  const raw = await readFile(SETTINGS_FILE, "utf-8");
+  const data = JSON.parse(raw) as Record<string, any>;
+  if (!data.heartbeat || typeof data.heartbeat !== "object") data.heartbeat = {};
+  data.heartbeat.enabled = enabled;
+  await writeFile(SETTINGS_FILE, JSON.stringify(data, null, 2) + "\n");
 }
 
 function htmlPage(): string {
@@ -368,7 +388,7 @@ function htmlPage(): string {
       position: fixed;
       top: 60px;
       right: 18px;
-      width: min(420px, calc(100vw - 36px));
+      width: min(300px, calc(100vw - 36px));
       z-index: 6;
       border: 1px solid #ffffff26;
       border-radius: 14px;
@@ -399,20 +419,47 @@ function htmlPage(): string {
       cursor: pointer;
       padding: 0 2px;
     }
-    .settings-json {
-      margin: 0;
-      max-height: 280px;
-      overflow: auto;
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
       padding: 10px;
       border-radius: 10px;
       border: 1px solid #ffffff16;
       background: #08101c;
+    }
+    .settings-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       color: #c8d4e8;
       font-family: "JetBrains Mono", monospace;
       font-size: 12px;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .hb-toggle {
+      border: 1px solid #ffffff2a;
+      background: #0f1b2d;
+      color: #dce7f8;
+      border-radius: 999px;
+      min-width: 92px;
+      padding: 7px 10px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+    }
+    .hb-toggle.on {
+      background: #113424;
+      border-color: #67f0b560;
+      color: #67f0b5;
+    }
+    .hb-toggle.off {
+      background: #341818;
+      border-color: #ff7f7f55;
+      color: #ff9b9b;
     }
 
     .dock {
@@ -471,7 +518,10 @@ function htmlPage(): string {
       <span>Settings</span>
       <button class="settings-close" id="settings-close" type="button" aria-label="Close settings">×</button>
     </div>
-    <pre class="settings-json" id="settings-json">Loading...</pre>
+    <div class="settings-row">
+      <div class="settings-label">💓 Heartbeat</div>
+      <button class="hb-toggle" id="hb-toggle" type="button">Loading...</button>
+    </div>
   </aside>
   <main class="stage">
     <section class="hero">
@@ -503,7 +553,7 @@ function htmlPage(): string {
     const settingsBtn = $("settings-btn");
     const settingsModal = $("settings-modal");
     const settingsClose = $("settings-close");
-    const settingsJson = $("settings-json");
+    const hbToggle = $("hb-toggle");
 
     const dateFmt = new Intl.DateTimeFormat(undefined, {
       weekday: "long",
@@ -637,13 +687,17 @@ function htmlPage(): string {
     }
 
     async function loadSettings() {
-      if (!settingsJson) return;
+      if (!hbToggle) return;
       try {
         const res = await fetch("/api/settings");
         const data = await res.json();
-        settingsJson.textContent = JSON.stringify(data, null, 2);
+        const on = Boolean(data?.heartbeat?.enabled);
+        hbToggle.textContent = on ? "Enabled" : "Disabled";
+        hbToggle.className = "hb-toggle " + (on ? "on" : "off");
+        hbToggle.dataset.enabled = on ? "1" : "0";
       } catch (err) {
-        settingsJson.textContent = "Could not load settings: " + String(err);
+        hbToggle.textContent = "Error";
+        hbToggle.className = "hb-toggle off";
       }
     }
 
@@ -656,6 +710,27 @@ function htmlPage(): string {
 
     if (settingsClose && settingsModal) {
       settingsClose.addEventListener("click", () => settingsModal.classList.remove("open"));
+    }
+
+    if (hbToggle) {
+      hbToggle.addEventListener("click", async () => {
+        const current = hbToggle.dataset.enabled === "1";
+        hbToggle.textContent = "Saving...";
+        try {
+          const res = await fetch("/api/settings/heartbeat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled: !current }),
+          });
+          const out = await res.json();
+          if (!out.ok) throw new Error(out.error || "save failed");
+          await loadSettings();
+          await refreshState();
+        } catch {
+          hbToggle.textContent = "Failed";
+          hbToggle.className = "hb-toggle off";
+        }
+      });
     }
 
     function esc(s) {
