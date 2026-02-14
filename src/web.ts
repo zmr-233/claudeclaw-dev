@@ -641,7 +641,7 @@ function htmlPage(): string {
       bottom: 24px;
       transform: translateX(-50%);
       width: min(980px, calc(100% - 24px));
-      padding: 8px 10px;
+      padding: 6px 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -649,15 +649,10 @@ function htmlPage(): string {
       gap: 0;
       z-index: 2;
       border-radius: 26px;
-      border: 1px solid #ffffff59;
-      background:
-        radial-gradient(120% 120% at 10% 0%, #ffffff38 0%, transparent 45%),
-        linear-gradient(180deg, #d7e8ff26 0%, #8ea8c51a 45%, #5f739113 100%);
-      backdrop-filter: blur(24px) saturate(1.35);
-      box-shadow:
-        inset 0 1px 0 #ffffff94,
-        inset 0 -16px 28px #101d321f,
-        0 14px 40px #0000003d;
+      border: 0;
+      background: #ffffff08;
+      backdrop-filter: blur(10px);
+      box-shadow: none;
     }
 
     .pill {
@@ -666,7 +661,7 @@ function htmlPage(): string {
       padding: 8px 12px;
       border-radius: 0;
       border: 0;
-      border-right: 1px solid #ffffff2e;
+      border-right: 0;
       background: transparent;
       color: #e7f0ff;
       font-size: 12px;
@@ -683,20 +678,20 @@ function htmlPage(): string {
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: #e5eefc;
-      opacity: 0.9;
+      color: #d6e2f5;
+      opacity: 0.75;
     }
     .pill-value {
       font-size: 13px;
-      color: #ffffff;
-      font-weight: 600;
-      text-shadow: 0 1px 0 #00000033;
+      color: #f3f7ff;
+      font-weight: 500;
+      text-shadow: none;
     }
     .pill-meta {
       font-size: 10px;
-      color: #d8e4f7;
+      color: #cfdbee;
       line-height: 1.2;
-      opacity: 0.9;
+      opacity: 0.7;
     }
 
     .pill.ok { border-color: #67f0b542; }
@@ -721,7 +716,7 @@ function htmlPage(): string {
         min-height: 52px;
         flex: 1 1 50%;
         border-right: 0;
-        border-bottom: 1px solid #ffffff26;
+        border-bottom: 0;
       }
       .pill:last-child,
       .pill:nth-last-child(2) {
