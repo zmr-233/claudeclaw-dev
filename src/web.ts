@@ -341,6 +341,79 @@ function htmlPage(): string {
       color: #e4ecf8;
       font-weight: 500;
     }
+    .settings-btn {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 5;
+      border: 1px solid #ffffff2a;
+      background: #0b1220c7;
+      color: #dce7f8;
+      backdrop-filter: blur(8px);
+      border-radius: 999px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+    }
+    .settings-btn:hover {
+      transform: translateY(-1px);
+      background: #122038d0;
+      border-color: #ffffff45;
+    }
+    .settings-modal {
+      position: fixed;
+      top: 60px;
+      right: 18px;
+      width: min(420px, calc(100vw - 36px));
+      z-index: 6;
+      border: 1px solid #ffffff26;
+      border-radius: 14px;
+      background: #0b1220eb;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 36px #0000005a;
+      padding: 12px;
+      display: none;
+    }
+    .settings-modal.open { display: block; }
+    .settings-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #9eb5d6;
+      margin-bottom: 10px;
+    }
+    .settings-close {
+      border: none;
+      background: transparent;
+      color: #9eb5d6;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 2px;
+    }
+    .settings-json {
+      margin: 0;
+      max-height: 280px;
+      overflow: auto;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ffffff16;
+      background: #08101c;
+      color: #c8d4e8;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      text-align: left;
+    }
 
     .dock {
       position: fixed;
@@ -392,6 +465,14 @@ function htmlPage(): string {
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
+  <button class="settings-btn" id="settings-btn" type="button">Settings</button>
+  <aside class="settings-modal" id="settings-modal" aria-live="polite">
+    <div class="settings-head">
+      <span>Settings</span>
+      <button class="settings-close" id="settings-close" type="button" aria-label="Close settings">×</button>
+    </div>
+    <pre class="settings-json" id="settings-json">Loading...</pre>
+  </aside>
   <main class="stage">
     <section class="hero">
       <div class="logo-art" role="img" aria-label="Lobster ASCII art logo">
@@ -419,6 +500,10 @@ function htmlPage(): string {
     const msgEl = $("message");
     const dockEl = $("dock");
     const typewriterEl = $("typewriter");
+    const settingsBtn = $("settings-btn");
+    const settingsModal = $("settings-modal");
+    const settingsClose = $("settings-close");
+    const settingsJson = $("settings-json");
 
     const dateFmt = new Intl.DateTimeFormat(undefined, {
       weekday: "long",
@@ -549,6 +634,28 @@ function htmlPage(): string {
       } catch (err) {
         dockEl.innerHTML = '<div class="pill bad">offline: ' + esc(String(err)) + '</div>';
       }
+    }
+
+    async function loadSettings() {
+      if (!settingsJson) return;
+      try {
+        const res = await fetch("/api/settings");
+        const data = await res.json();
+        settingsJson.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        settingsJson.textContent = "Could not load settings: " + String(err);
+      }
+    }
+
+    if (settingsBtn && settingsModal) {
+      settingsBtn.addEventListener("click", async () => {
+        settingsModal.classList.toggle("open");
+        if (settingsModal.classList.contains("open")) await loadSettings();
+      });
+    }
+
+    if (settingsClose && settingsModal) {
+      settingsClose.addEventListener("click", () => settingsModal.classList.remove("open"));
     }
 
     function esc(s) {
