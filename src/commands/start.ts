@@ -307,6 +307,12 @@ export async function start(args: string[] = []) {
     if (heartbeatTimer) clearTimeout(heartbeatTimer);
     heartbeatTimer = null;
 
+    // Skip heartbeat when cron jobs are configured — jobs replace the heartbeat
+    if (currentJobs.length > 0) {
+      nextHeartbeatAt = 0;
+      return;
+    }
+
     if (!currentSettings.heartbeat.enabled || !currentSettings.heartbeat.prompt) {
       nextHeartbeatAt = 0;
       return;
@@ -387,11 +393,17 @@ export async function start(args: string[] = []) {
       // Detect job changes
       const jobNames = newJobs.map((j) => `${j.name}:${j.schedule}:${j.prompt}`).sort().join("|");
       const oldJobNames = currentJobs.map((j) => `${j.name}:${j.schedule}:${j.prompt}`).sort().join("|");
+      const jobCountChanged = newJobs.length !== currentJobs.length;
       if (jobNames !== oldJobNames) {
         console.log(`[${ts()}] Jobs reloaded: ${newJobs.length} job(s)`);
         newJobs.forEach((j) => console.log(`    - ${j.name} [${j.schedule}]`));
       }
       currentJobs = newJobs;
+
+      // Reschedule heartbeat if jobs were added/removed (jobs suppress heartbeat)
+      if (jobCountChanged && !hbChanged) {
+        scheduleHeartbeat();
+      }
 
       // Telegram changes
       await initTelegram(newSettings.telegram.token);
