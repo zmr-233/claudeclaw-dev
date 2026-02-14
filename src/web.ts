@@ -597,9 +597,9 @@ function htmlPage(): string {
     .info-json {
       margin: 0;
       padding: 10px;
-      max-height: 40vh;
-      min-height: 140px;
-      overflow: auto;
+      max-height: none;
+      min-height: 0;
+      overflow: visible;
       display: block;
       white-space: pre;
       font-family: "JetBrains Mono", monospace;
@@ -607,31 +607,22 @@ function htmlPage(): string {
       color: #d7e3f5;
       background: #060d18;
       line-height: 1.5;
-      overscroll-behavior: contain;
-      scrollbar-width: thin;
-      scrollbar-color: #7fa6d5 #091222;
+      overscroll-behavior: auto;
     }
-    .info-json.state-json {
-      max-height: 52vh;
-    }
-    .info-body::-webkit-scrollbar,
-    .info-json::-webkit-scrollbar {
+    .info-body::-webkit-scrollbar {
       width: 10px;
       height: 10px;
     }
-    .info-body::-webkit-scrollbar-track,
-    .info-json::-webkit-scrollbar-track {
+    .info-body::-webkit-scrollbar-track {
       background: #091222;
       border-radius: 999px;
     }
-    .info-body::-webkit-scrollbar-thumb,
-    .info-json::-webkit-scrollbar-thumb {
+    .info-body::-webkit-scrollbar-thumb {
       background: linear-gradient(180deg, #93c6ff, #668ebf);
       border-radius: 999px;
       border: 2px solid #091222;
     }
-    .info-body::-webkit-scrollbar-thumb:hover,
-    .info-json::-webkit-scrollbar-thumb:hover {
+    .info-body::-webkit-scrollbar-thumb:hover {
       background: linear-gradient(180deg, #a9d4ff, #789fce);
     }
 
@@ -1092,7 +1083,7 @@ function htmlPage(): string {
       infoBody.innerHTML = sections.map((section) =>
         '<div class="info-section">' +
           '<div class="info-title">' + esc(section.title) + "</div>" +
-          '<pre class="info-json' + (section.title === "state.json" ? " state-json" : "") + '">' + esc(JSON.stringify(section.value, null, 2)) + "</pre>" +
+          '<pre class="info-json">' + esc(JSON.stringify(section.value, null, 2)) + "</pre>" +
         "</div>"
       ).join("");
     }
