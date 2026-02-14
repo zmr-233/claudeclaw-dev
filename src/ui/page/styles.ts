@@ -302,9 +302,9 @@ export const pageStyles = String.raw`    :root {
     .quick-check-inline {
       position: absolute;
       right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      min-height: 28px;
+      top: 6px;
+      bottom: 6px;
+      min-height: 0;
       padding: 0 10px;
       z-index: 1;
     }
@@ -312,7 +312,7 @@ export const pageStyles = String.raw`    :root {
       transform: translateY(-1px);
     }
     .quick-check-inline:hover {
-      transform: translateY(calc(-50% - 1px));
+      transform: translateY(-1px);
     }
     .quick-check:has(input:checked) {
       background: #11342455;
