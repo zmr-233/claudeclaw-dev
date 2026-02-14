@@ -417,6 +417,53 @@ function htmlPage(): string {
       background: #122038d0;
       border-color: #ffffff45;
     }
+    .repo-cta {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #f1f6ff;
+      background: #ffffff10;
+      backdrop-filter: blur(8px);
+      box-shadow: inset 0 1px 0 #ffffff32;
+      animation: ctaEnter 520ms ease-out both, ctaFloat 4.4s ease-in-out 800ms infinite;
+      transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    }
+    .repo-cta:hover {
+      transform: translateX(-50%) translateY(-1px);
+      background: #ffffff18;
+      box-shadow: inset 0 1px 0 #ffffff50, 0 8px 20px #0000002a;
+    }
+    .repo-cta:active {
+      transform: translateX(-50%) translateY(0);
+    }
+    .repo-star {
+      color: #ffe08f;
+      animation: starPulse 1.8s ease-in-out infinite;
+    }
+    @keyframes ctaEnter {
+      from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    @keyframes ctaFloat {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-1px); }
+    }
+    @keyframes starPulse {
+      0%, 100% { opacity: 0.78; }
+      50% { opacity: 1; }
+    }
     .settings-modal {
       position: fixed;
       top: 60px;
@@ -740,6 +787,11 @@ function htmlPage(): string {
       .stage {
         padding-bottom: 160px;
       }
+      .repo-cta {
+        top: 14px;
+        font-size: 10px;
+        padding: 8px 12px;
+      }
       .dock-shell {
         bottom: 14px;
         width: min(980px, calc(100% - 12px));
@@ -778,6 +830,17 @@ function htmlPage(): string {
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
+  <a
+    class="repo-cta"
+    href="https://github.com/moazbuilds/claudeclaw"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="Star claudeclaw on GitHub"
+  >
+    <span>GitHub</span>
+    <span>Star</span>
+    <span class="repo-star">★</span>
+  </a>
   <button class="settings-btn" id="settings-btn" type="button">Settings</button>
   <aside class="settings-modal" id="settings-modal" aria-live="polite">
     <div class="settings-head">
