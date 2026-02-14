@@ -711,7 +711,7 @@ function htmlPage(): string {
           <div class="settings-label">🧾 Advanced</div>
           <div class="settings-meta">Technical runtime and JSON files</div>
         </div>
-        <button class="hb-toggle off" id="info-open" type="button">Info</button>
+        <button class="hb-toggle on" id="info-open" type="button">Info</button>
       </div>
     </div>
   </aside>
