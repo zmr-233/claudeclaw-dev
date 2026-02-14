@@ -16,7 +16,10 @@ export const pageScript = String.raw`    const $ = (id) => document.getElementBy
     const clockToggle = $("clock-toggle");
     const hbInfoEl = $("hb-info");
     const clockInfoEl = $("clock-info");
+    const quickJobsView = $("quick-jobs-view");
     const quickJobForm = $("quick-job-form");
+    const quickOpenCreate = $("quick-open-create");
+    const quickBackJobs = $("quick-back-jobs");
     const quickJobOffset = $("quick-job-offset");
     const quickJobPrompt = $("quick-job-prompt");
     const quickJobSubmit = $("quick-job-submit");
@@ -192,6 +195,18 @@ export const pageScript = String.raw`    const $ = (id) => document.getElementBy
         .join("");
     }
 
+    function setQuickView(view) {
+      if (!quickJobsView || !quickJobForm) return;
+      const showJobs = view === "jobs";
+      quickJobsView.classList.toggle("quick-view-hidden", !showJobs);
+      quickJobForm.classList.toggle("quick-view-hidden", showJobs);
+    }
+
+    function syncQuickViewForJobs(jobs) {
+      const count = Array.isArray(jobs) ? jobs.length : 0;
+      setQuickView(count > 0 ? "jobs" : "create");
+    }
+
     async function refreshState() {
       try {
         const res = await fetch("/api/state");
@@ -210,6 +225,7 @@ export const pageScript = String.raw`    const $ = (id) => document.getElementBy
             '<div class="side-label">Jobs</div>';
         }
         renderJobsList(state.jobs);
+        syncQuickViewForJobs(state.jobs);
         if (uptimeBubbleEl) {
           uptimeBubbleEl.innerHTML =
             '<div class="side-icon">⏱️</div>' +
@@ -222,6 +238,7 @@ export const pageScript = String.raw`    const $ = (id) => document.getElementBy
           jobsBubbleEl.innerHTML = '<div class="side-icon">🗂️</div><div class="side-value">-</div><div class="side-label">Jobs</div>';
         }
         renderJobsList([]);
+        syncQuickViewForJobs([]);
         if (uptimeBubbleEl) {
           uptimeBubbleEl.innerHTML = '<div class="side-icon">⏱️</div><div class="side-value">-</div><div class="side-label">Uptime</div>';
         }
@@ -452,6 +469,16 @@ export const pageScript = String.raw`    const $ = (id) => document.getElementBy
       updateQuickJobUi();
     });
 
+    if (quickOpenCreate) {
+      quickOpenCreate.addEventListener("click", () => setQuickView("create"));
+    }
+
+    if (quickBackJobs) {
+      quickBackJobs.addEventListener("click", async () => {
+        await refreshState();
+      });
+    }
+
     if (quickJobForm && quickJobOffset && quickJobPrompt && quickJobSubmit && quickJobStatus) {
       quickJobForm.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -492,6 +519,7 @@ export const pageScript = String.raw`    const $ = (id) => document.getElementBy
     setInterval(renderClock, 1000);
     startTypewriter();
     updateQuickJobUi();
+    setQuickView("jobs");
 
     refreshState();
     setInterval(refreshState, 1000);`;

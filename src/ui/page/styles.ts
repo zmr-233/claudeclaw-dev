@@ -51,7 +51,7 @@ export const pageStyles = String.raw`    :root {
       display: grid;
       justify-items: center;
       align-items: start;
-      padding: 32px 16px 120px;
+      padding: 64px 16px 120px;
       position: relative;
       z-index: 1;
     }
@@ -164,6 +164,12 @@ export const pageStyles = String.raw`    :root {
     .quick-job-head {
       display: grid;
       gap: 3px;
+    }
+    .quick-job-head-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 10px;
     }
     .quick-job-title {
       font-family: "Fraunces", serif;
@@ -304,11 +310,31 @@ export const pageStyles = String.raw`    :root {
       color: #cde0f7;
       opacity: 0.95;
     }
-    .quick-jobs {
+    .quick-open-create,
+    .quick-back-jobs {
+      height: 33px;
+      padding: 0 12px;
+      border: 1px solid #ffffff2c;
+      border-radius: 999px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.03em;
+      color: #daebff;
+      background: #ffffff12;
+      cursor: pointer;
+      transition: background 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
+    }
+    .quick-open-create:hover,
+    .quick-back-jobs:hover {
+      background: #ffffff22;
+      border-color: #ffffff44;
+      transform: translateY(-1px);
+    }
+    .quick-form-foot {
       border-top: 1px solid #ffffff1a;
       padding-top: 10px;
-      display: grid;
-      gap: 8px;
+      display: flex;
+      justify-content: flex-end;
     }
     .quick-jobs-list {
       display: grid;
@@ -316,6 +342,9 @@ export const pageStyles = String.raw`    :root {
       max-height: 170px;
       overflow: auto;
       padding-right: 4px;
+    }
+    .quick-jobs-list-main {
+      max-height: 280px;
     }
     .quick-job-item {
       display: flex;
@@ -347,6 +376,9 @@ export const pageStyles = String.raw`    :root {
       color: #b8cae3;
       font-family: "JetBrains Mono", monospace;
       font-size: 11px;
+    }
+    .quick-view-hidden {
+      display: none;
     }
     .settings-btn {
       position: fixed;
@@ -738,6 +770,7 @@ export const pageStyles = String.raw`    :root {
 
     @media (max-width: 640px) {
       .stage {
+        padding-top: 50px;
         padding-bottom: 160px;
       }
       .repo-cta {
@@ -751,6 +784,9 @@ export const pageStyles = String.raw`    :root {
       .quick-job {
         margin-top: 14px;
         padding: 11px;
+      }
+      .quick-job-head-row {
+        flex-direction: column;
       }
       .quick-job-grid,
       .quick-job-actions {

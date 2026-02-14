@@ -95,7 +95,19 @@ ${pageStyles}
       <div class="time" id="clock">--:--:--</div>
       <div class="date" id="date">Loading date...</div>
       <div class="message" id="message">Welcome back.</div>
-      <form class="quick-job" id="quick-job-form">
+      <section class="quick-job" id="quick-jobs-view">
+        <div class="quick-job-head quick-job-head-row">
+          <div>
+            <div class="quick-job-title">Jobs List</div>
+            <div class="quick-job-sub">Scheduled runs loaded from runtime jobs</div>
+          </div>
+          <button class="quick-open-create" id="quick-open-create" type="button">Create Job</button>
+        </div>
+        <div class="quick-jobs-list quick-jobs-list-main" id="quick-jobs-list">
+          <div class="quick-jobs-empty">Loading jobs...</div>
+        </div>
+      </section>
+      <form class="quick-job quick-view-hidden" id="quick-job-form">
         <div class="quick-job-head">
           <div class="quick-job-title">Add Scheduled Job</div>
           <div class="quick-job-sub">Daily cron with prompt payload</div>
@@ -125,11 +137,8 @@ ${pageStyles}
           <button class="quick-submit" id="quick-job-submit" type="submit">Add to Jobs List</button>
           <div class="quick-status" id="quick-job-status"></div>
         </div>
-        <div class="quick-jobs">
-          <div class="quick-label">Jobs List</div>
-          <div class="quick-jobs-list" id="quick-jobs-list">
-            <div class="quick-jobs-empty">No jobs yet.</div>
-          </div>
+        <div class="quick-form-foot">
+          <button class="quick-back-jobs" id="quick-back-jobs" type="button">Back to Jobs List</button>
         </div>
       </form>
     </section>
