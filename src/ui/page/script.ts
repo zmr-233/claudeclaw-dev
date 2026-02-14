@@ -21,6 +21,7 @@ export const pageScript = String.raw`    const $ = (id) => document.getElementBy
     const quickOpenCreate = $("quick-open-create");
     const quickBackJobs = $("quick-back-jobs");
     const quickJobOffset = $("quick-job-offset");
+    const quickJobDaily = $("quick-job-daily");
     const quickJobPrompt = $("quick-job-prompt");
     const quickJobSubmit = $("quick-job-submit");
     const quickJobStatus = $("quick-job-status");
@@ -669,7 +670,11 @@ export const pageScript = String.raw`    const $ = (id) => document.getElementBy
           const res = await fetch("/api/jobs/quick", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ time: target.time, prompt }),
+            body: JSON.stringify({
+              time: target.time,
+              prompt,
+              daily: quickJobDaily ? quickJobDaily.checked : true,
+            }),
           });
           const out = await res.json();
           if (!out.ok) throw new Error(out.error || "failed");

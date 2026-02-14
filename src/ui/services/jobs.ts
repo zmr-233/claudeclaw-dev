@@ -5,11 +5,13 @@ import { JOBS_DIR } from "../constants";
 export interface QuickJobInput {
   time?: unknown;
   prompt?: unknown;
+  daily?: unknown;
 }
 
-export async function createQuickJob(input: QuickJobInput): Promise<{ name: string; schedule: string }> {
+export async function createQuickJob(input: QuickJobInput): Promise<{ name: string; schedule: string; daily: boolean }> {
   const time = typeof input.time === "string" ? input.time.trim() : "";
   const prompt = typeof input.prompt === "string" ? input.prompt.trim() : "";
+  const daily = input.daily == null ? true : Boolean(input.daily);
 
   if (!/^\d{2}:\d{2}$/.test(time)) {
     throw new Error("Invalid time. Use HH:MM.");
@@ -31,11 +33,11 @@ export async function createQuickJob(input: QuickJobInput): Promise<{ name: stri
   const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
   const name = `quick-${stamp}-${hour.toString().padStart(2, "0")}${minute.toString().padStart(2, "0")}`;
   const path = join(JOBS_DIR, `${name}.md`);
-  const content = `---\nschedule: "${schedule}"\n---\n${prompt}\n`;
+  const content = `---\nschedule: "${schedule}"\ndaily: ${daily ? "true" : "false"}\n---\n${prompt}\n`;
 
   await mkdir(JOBS_DIR, { recursive: true });
   await writeFile(path, content, "utf-8");
-  return { name, schedule };
+  return { name, schedule, daily };
 }
 
 export async function deleteJob(name: string): Promise<void> {
