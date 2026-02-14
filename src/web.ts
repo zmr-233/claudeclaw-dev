@@ -601,7 +601,8 @@ function htmlPage(): string {
       "Keep it simple. Keep it clean.",
       "One focused step at a time.",
       "Clock is live. Let's move.",
-      "Ship it, lobster mode."
+      "Ship it, lobster mode.",
+      "Precision first."
     ];
 
     function startTypewriter() {
