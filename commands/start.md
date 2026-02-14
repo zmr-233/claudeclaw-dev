@@ -58,7 +58,7 @@ Start the heartbeat daemon for this project. Follow these steps exactly:
    Then, based on their answers:
 
    - **If yes to heartbeat**: Use AskUserQuestion again with one question:
-     - "How often should it run in minutes?" (header: "Interval", options: "5", "15 (Recommended)", "30", "60")
+     - "How often should it run in minutes?" (header: "Interval", options: "5", "15", "30 (Recommended)", "60")
      - Set `heartbeat.enabled` to `true` and `heartbeat.interval` to their answer.
 
    - **If yes to Telegram**: Use AskUserQuestion again with two questions:
