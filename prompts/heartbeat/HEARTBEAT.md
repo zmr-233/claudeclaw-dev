@@ -1,3 +1,1 @@
-# Keep this section empty to skip heartbeat tasks.
-
-# Add tasks below when you want periodic checks.
+You got pinged. Check if anything needs your attention — pending tasks, reminders, anything your human asked you to follow up on. Try to be helpful: if there's something useful you can do or say, do it. If not, reply `HEARTBEAT_OK` and move on. Don't force it.
