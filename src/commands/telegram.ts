@@ -372,6 +372,9 @@ async function downloadVoiceFromMessage(token: string, message: TelegramMessage)
 
   const remotePath = fileMeta.result.file_path;
   const downloadUrl = `${FILE_API_BASE}${token}/${remotePath}`;
+  debugLog(
+    `Voice download: fileId=${fileId} remotePath=${remotePath} mime=${audioLike.mime_type ?? "unknown"} expectedSize=${audioLike.file_size ?? "unknown"}`
+  );
   const response = await fetch(downloadUrl);
   if (!response.ok) throw new Error(`Telegram file download failed: ${response.status} ${response.statusText}`);
 
@@ -387,6 +390,18 @@ async function downloadVoiceFromMessage(token: string, message: TelegramMessage)
   const localPath = join(dir, filename);
   const bytes = new Uint8Array(await response.arrayBuffer());
   await Bun.write(localPath, bytes);
+  const header = Array.from(bytes.slice(0, 8))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join(" ");
+  const oggMagic =
+    bytes.length >= 4 &&
+    bytes[0] === 0x4f &&
+    bytes[1] === 0x67 &&
+    bytes[2] === 0x67 &&
+    bytes[3] === 0x53;
+  debugLog(
+    `Voice download: wrote ${bytes.length} bytes to ${localPath} ext=${ext} header=${header || "empty"} oggMagic=${oggMagic}`
+  );
   return localPath;
 }
 

@@ -93,7 +93,16 @@ async function decodeOggOpusToWav(inputPath: string, wavPath: string, log: Whisp
     await decoder.ready;
     log(`voice decode: decoder ready`);
     const inputBytes = new Uint8Array(await readFile(inputPath));
-    log(`voice decode: read ${inputBytes.length} bytes`);
+    const header = Array.from(inputBytes.slice(0, 8))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join(" ");
+    const oggMagic =
+      inputBytes.length >= 4 &&
+      inputBytes[0] === 0x4f &&
+      inputBytes[1] === 0x67 &&
+      inputBytes[2] === 0x67 &&
+      inputBytes[3] === 0x53;
+    log(`voice decode: read ${inputBytes.length} bytes header=${header || "empty"} oggMagic=${oggMagic}`);
     const decoded = await decoder.decodeFile(inputBytes);
     log(
       `voice decode: channels=${decoded.channelData.length} sampleRate=${decoded.sampleRate} samplesDecoded=${decoded.samplesDecoded} decodeErrors=${decoded.errors.length}`
