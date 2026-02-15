@@ -1,7 +1,7 @@
 import { writeFile, unlink, mkdir } from "fs/promises";
 import { join } from "path";
 import { fileURLToPath } from "url";
-import { run, bootstrap, ensureProjectClaudeMd, loadHeartbeatPromptTemplate } from "../runner";
+import { run, runUserMessage, bootstrap, ensureProjectClaudeMd, loadHeartbeatPromptTemplate } from "../runner";
 import { writeState, type StateData } from "../statusline";
 import { cronMatches, nextCronMatch } from "../cron";
 import { clearJobSchedule, loadJobs } from "../jobs";
@@ -240,7 +240,7 @@ export async function start(args: string[] = []) {
     await initConfig();
     await loadSettings();
     await ensureProjectClaudeMd();
-    const result = await run("prompt", payload);
+    const result = await runUserMessage("prompt", payload);
     console.log(result.stdout);
     if (result.exitCode !== 0) process.exit(result.exitCode);
     return;

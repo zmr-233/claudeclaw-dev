@@ -1,4 +1,4 @@
-import { ensureProjectClaudeMd, run } from "../runner";
+import { ensureProjectClaudeMd, run, runUserMessage } from "../runner";
 import { getSettings, loadSettings } from "../config";
 import { resetSession } from "../sessions";
 import { transcribeAudioToText } from "../whisper";
@@ -558,7 +558,7 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
       );
     }
     const prefixedPrompt = promptParts.join("\n");
-    const result = await run("telegram", prefixedPrompt);
+    const result = await runUserMessage("telegram", prefixedPrompt);
 
     if (result.exitCode !== 0) {
       await sendMessage(config.token, chatId, `Error (exit ${result.exitCode}): ${result.stderr || "Unknown error"}`);

@@ -3,6 +3,7 @@ import { join } from "path";
 import { existsSync } from "fs";
 import { getSession, createSession } from "./sessions";
 import { getSettings, type SecurityConfig } from "./config";
+import { buildClockPromptPrefix } from "./timezone";
 
 const LOGS_DIR = join(process.cwd(), ".claude/claudeclaw/logs");
 // Resolve prompts relative to the claudeclaw installation, not the project dir
@@ -246,6 +247,21 @@ async function execClaude(name: string, prompt: string): Promise<RunResult> {
 
 export async function run(name: string, prompt: string): Promise<RunResult> {
   return enqueue(() => execClaude(name, prompt));
+}
+
+function prefixUserMessageWithClock(prompt: string): string {
+  try {
+    const settings = getSettings();
+    const prefix = buildClockPromptPrefix(new Date(), settings.timezoneOffsetMinutes);
+    return `${prefix}\n${prompt}`;
+  } catch {
+    const prefix = buildClockPromptPrefix(new Date(), 0);
+    return `${prefix}\n${prompt}`;
+  }
+}
+
+export async function runUserMessage(name: string, prompt: string): Promise<RunResult> {
+  return run(name, prefixUserMessageWithClock(prompt));
 }
 
 /**

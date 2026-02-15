@@ -1,6 +1,10 @@
 const MIN_OFFSET_MINUTES = -12 * 60;
 const MAX_OFFSET_MINUTES = 14 * 60;
 
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
 export function clampTimezoneOffsetMinutes(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(MIN_OFFSET_MINUTES, Math.min(MAX_OFFSET_MINUTES, Math.round(value)));
@@ -47,6 +51,28 @@ export function resolveTimezoneOffsetMinutes(value: unknown, timezoneFallback?: 
 
 export function shiftDateToOffset(date: Date, timezoneOffsetMinutes: number): Date {
   return new Date(date.getTime() + clampTimezoneOffsetMinutes(timezoneOffsetMinutes) * 60_000);
+}
+
+export function formatUtcOffsetLabel(timezoneOffsetMinutes: number): string {
+  const clamped = clampTimezoneOffsetMinutes(timezoneOffsetMinutes);
+  const sign = clamped >= 0 ? "+" : "-";
+  const abs = Math.abs(clamped);
+  const hours = Math.floor(abs / 60);
+  const minutes = abs % 60;
+  return minutes === 0
+    ? `UTC${sign}${hours}`
+    : `UTC${sign}${hours}:${pad2(minutes)}`;
+}
+
+export function buildClockPromptPrefix(date: Date, timezoneOffsetMinutes: number): string {
+  const shifted = shiftDateToOffset(date, timezoneOffsetMinutes);
+  const offsetLabel = formatUtcOffsetLabel(timezoneOffsetMinutes);
+  const timestamp = [
+    `${shifted.getUTCFullYear()}-${pad2(shifted.getUTCMonth() + 1)}-${pad2(shifted.getUTCDate())}`,
+    `${pad2(shifted.getUTCHours())}:${pad2(shifted.getUTCMinutes())}:${pad2(shifted.getUTCSeconds())}`,
+  ].join(" ");
+
+  return `[${timestamp} ${offsetLabel}]`;
 }
 
 export function getDayAndMinuteAtOffset(date: Date, timezoneOffsetMinutes: number): { day: number; minute: number } {
