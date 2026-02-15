@@ -11,7 +11,7 @@ Start the heartbeat daemon for this project. Follow these steps exactly:
      - "CRITICAL BLOCKER: For security reasons, close this session and start a new one from the folder you want to initialize ClaudeClaw in."
    - Do not continue with any other step until they restart from a non-home project directory.
 
-2. **Runtime/dependency checker (Bun + Node + download deps)**:
+2. **Runtime checker (Bun + Node)**:
    - Run:
      ```bash
      which bun
@@ -32,10 +32,6 @@ Start the heartbeat daemon for this project. Follow these steps exactly:
    - If `node` is missing:
      - Tell the user Node.js is required for the OGG converter helper.
      - Ask them to install Node.js LTS and rerun start, then exit.
-   - After both runtimes are available, ensure dependencies are downloaded:
-     ```bash
-     bun install
-     ```
 
 3. **Check existing config**: Read `.claude/claudeclaw/settings.json` (if it exists). Determine which sections are already configured:
    - **Heartbeat configured** = `heartbeat.enabled` is `true` AND `heartbeat.prompt` is non-empty
