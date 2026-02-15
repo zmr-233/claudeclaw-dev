@@ -106,8 +106,12 @@ function parseClockMinutes(value: string): number | null {
 }
 
 function isHeartbeatExcludedNow(config: HeartbeatConfig, timezoneOffsetMinutes: number): boolean {
+  return isHeartbeatExcludedAt(config, timezoneOffsetMinutes, new Date());
+}
+
+function isHeartbeatExcludedAt(config: HeartbeatConfig, timezoneOffsetMinutes: number, at: Date): boolean {
   if (!Array.isArray(config.excludeWindows) || config.excludeWindows.length === 0) return false;
-  const local = getDayAndMinuteAtOffset(new Date(), timezoneOffsetMinutes);
+  const local = getDayAndMinuteAtOffset(at, timezoneOffsetMinutes);
 
   for (const window of config.excludeWindows) {
     const start = parseClockMinutes(window.start);
@@ -132,6 +136,24 @@ function isHeartbeatExcludedNow(config: HeartbeatConfig, timezoneOffsetMinutes: 
   }
 
   return false;
+}
+
+function nextAllowedHeartbeatAt(
+  config: HeartbeatConfig,
+  timezoneOffsetMinutes: number,
+  intervalMs: number,
+  fromMs: number
+): number {
+  const interval = Math.max(60_000, Math.round(intervalMs));
+  let candidate = fromMs + interval;
+  let guard = 0;
+
+  while (isHeartbeatExcludedAt(config, timezoneOffsetMinutes, new Date(candidate)) && guard < 20_000) {
+    candidate += interval;
+    guard++;
+  }
+
+  return candidate;
 }
 
 async function setupStatusline() {
@@ -458,12 +480,22 @@ export async function start(args: string[] = []) {
     }
 
     const ms = currentSettings.heartbeat.interval * 60_000;
-    nextHeartbeatAt = Date.now() + ms;
+    nextHeartbeatAt = nextAllowedHeartbeatAt(
+      currentSettings.heartbeat,
+      currentSettings.timezoneOffsetMinutes,
+      ms,
+      Date.now()
+    );
 
     function tick() {
       if (isHeartbeatExcludedNow(currentSettings.heartbeat, currentSettings.timezoneOffsetMinutes)) {
         console.log(`[${ts()}] Heartbeat skipped (excluded window)`);
-        nextHeartbeatAt = Date.now() + ms;
+        nextHeartbeatAt = nextAllowedHeartbeatAt(
+          currentSettings.heartbeat,
+          currentSettings.timezoneOffsetMinutes,
+          ms,
+          Date.now()
+        );
         return;
       }
       Promise.all([
@@ -483,7 +515,12 @@ export async function start(args: string[] = []) {
         .then((r) => {
           if (r) forwardToTelegram("", r);
         });
-      nextHeartbeatAt = Date.now() + ms;
+      nextHeartbeatAt = nextAllowedHeartbeatAt(
+        currentSettings.heartbeat,
+        currentSettings.timezoneOffsetMinutes,
+        ms,
+        Date.now()
+      );
     }
 
     heartbeatTimer = setTimeout(function runAndReschedule() {
