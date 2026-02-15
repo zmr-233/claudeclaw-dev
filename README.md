@@ -4,6 +4,8 @@
 
 ClaudeClaw turns your Claude Code into a personal assistant that never sleeps. It runs as a background daemon, executing tasks on a schedule, responding to messages on Telegram, transcribing voice commands, and integrating with any service you need.
 
+![ClaudeClaw Dashboard](images/dashboard.png)
+
 ## Why ClaudeClaw?
 
 **Zero API overhead.** No separate API keys, no token accounting, no billing surprises. Runs entirely within your Claude Code subscription with smart context management.
