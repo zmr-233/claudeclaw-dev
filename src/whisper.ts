@@ -11,6 +11,7 @@ const LIB_DIR = join(WHISPER_ROOT, "lib");
 const MODEL_FOLDER = join(WHISPER_ROOT, "models");
 const TMP_FOLDER = join(WHISPER_ROOT, "tmp");
 const OGG_MJS_CONVERTER = fileURLToPath(new URL("./ogg.mjs", import.meta.url));
+const PLUGIN_ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 const MODEL_URL = `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-${WHISPER_MODEL}.bin`;
 
@@ -246,8 +247,7 @@ async function prepareWhisperAssets(printOutput: boolean): Promise<void> {
 }
 
 function ensureOggDeps(): void {
-  const projectRoot = process.cwd();
-  const marker = join(projectRoot, "node_modules", "ogg-opus-decoder");
+  const marker = join(PLUGIN_ROOT, "node_modules", "ogg-opus-decoder");
   try {
     statSync(marker);
   } catch {
@@ -256,7 +256,7 @@ function ensureOggDeps(): void {
       try { execSync("bun --version", { stdio: "ignore" }); return "bun"; } catch {}
       return "npm";
     })();
-    execSync(`${pkgMgr} install`, { cwd: projectRoot, stdio: "inherit" });
+    execSync(`${pkgMgr} install`, { cwd: PLUGIN_ROOT, stdio: "inherit" });
   }
 }
 
