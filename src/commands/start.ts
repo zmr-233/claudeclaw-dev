@@ -1,5 +1,6 @@
 import { writeFile, unlink, mkdir } from "fs/promises";
 import { join } from "path";
+import { networkInterfaces } from "os";
 import { fileURLToPath } from "url";
 import { run, runUserMessage, bootstrap, ensureProjectClaudeMd, loadHeartbeatPromptTemplate } from "../runner";
 import { writeState, type StateData } from "../statusline";
@@ -438,6 +439,24 @@ export async function start(args: string[] = []) {
     web = startWebWithFallback(currentSettings.web.host, webPort);
     currentSettings.web.port = web.port;
     console.log(`[${new Date().toLocaleTimeString()}] Web UI listening on http://${web.host}:${web.port}`);
+
+    // Send LAN IPs via Telegram when binding to 0.0.0.0
+    if (web.host === "0.0.0.0" || web.host === "::") {
+      const lanIps = Object.values(networkInterfaces())
+        .flat()
+        .filter((iface): iface is NonNullable<typeof iface> =>
+          !!iface && iface.family === "IPv4" && !iface.internal
+        )
+        .map((iface) => iface.address);
+
+      if (lanIps.length > 0 && telegramSend && currentSettings.telegram.allowedUserIds.length > 0) {
+        const urls = lanIps.map((ip) => `http://${ip}:${web!.port}`).join(" or ");
+        const msg = `Web UI started, access from LAN:\n${urls}`;
+        for (const userId of currentSettings.telegram.allowedUserIds) {
+          telegramSend(userId, msg).catch(() => {});
+        }
+      }
+    }
   }
 
   // --- Helpers ---

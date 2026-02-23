@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "nfc-sudo": {
+      "command": "/usr/bin/uv",
+      "args": ["run", "--project", "/home/zmr233/claudeclaw/04-Keystone/nfc-sudo-mcp", "python3", "/home/zmr233/claudeclaw/04-Keystone/nfc-sudo-mcp/mcp_server.py"],
+      "env": {}
+    }
+  }
+}

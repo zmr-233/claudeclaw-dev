@@ -101,7 +101,7 @@ Start the heartbeat daemon for this project. Follow these steps exactly:
    ```
    Use the description "Starting ClaudeClaw server" for this command.
    Wait 1 second, then check `cat .claude/claudeclaw/logs/daemon.log`. If it contains "Aborted: daemon already running", tell the user and exit.
-   - Read `.claude/claudeclaw/settings.json` for `web.port` (default `4632` if missing) and `web.host` (default `127.0.0.1`).
+   - Read `.claude/claudeclaw/settings.json` for `web.port` (default `4632` if missing) and `web.host` (default `0.0.0.0`).
    - Then try to open the dashboard directly:
      - Linux: `xdg-open http://<HOST>:<PORT>`
      - macOS: `open http://<HOST>:<PORT>`
@@ -140,7 +140,8 @@ Show this direct Web UI URL:
 ```bash
 http://<WEB_HOST>:<WEB_PORT>
 ```
-Defaults: `WEB_HOST=127.0.0.1`, `WEB_PORT=4632` unless changed via settings or `--web-port`.
+Defaults: `WEB_HOST=0.0.0.0`, `WEB_PORT=4632` unless changed via settings or `--web-port`.
+If `WEB_HOST` is `0.0.0.0`, use `127.0.0.1` for `xdg-open` (browsers can't open 0.0.0.0), but display the actual bound address in the report.
 
 ---
 

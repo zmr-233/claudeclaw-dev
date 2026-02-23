@@ -220,7 +220,7 @@ Reset all settings to defaults.
      },
      "web": {
        "enabled": false,
-       "host": "127.0.0.1",
+       "host": "0.0.0.0",
        "port": 4632
      }
    }
@@ -262,7 +262,7 @@ Location: `.claude/claudeclaw/settings.json`
   },
   "web": {
     "enabled": true,
-    "host": "127.0.0.1",
+    "host": "0.0.0.0",
     "port": 4632
   }
 }
@@ -289,7 +289,7 @@ Location: `.claude/claudeclaw/settings.json`
 | `security.allowedTools`    | string[]   | Extra tools to allow                           |
 | `security.disallowedTools` | string[]   | Tools to block                                 |
 | `web.enabled`              | boolean    | Whether the web UI is served                   |
-| `web.host`                 | string     | Bind address (default `127.0.0.1`)             |
+| `web.host`                 | string     | Bind address (default `0.0.0.0`)               |
 | `web.port`                 | number     | Port number (default `4632`)                   |
 
 The daemon hot-reloads this file every 30 seconds. No restart needed after changes.
