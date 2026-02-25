@@ -222,10 +222,11 @@ async function execClaude(name: string, prompt: string): Promise<RunResult> {
     `[${new Date().toLocaleTimeString()}] Running: ${name} (${isNew ? "new session" : `resume ${existing.sessionId.slice(0, 8)}`}, security: ${security.level})`
   );
 
-  // Always use json output to get the full concatenated result text.
-  // With --output-format text, only the last text segment (after the final
-  // tool call) is emitted, silently dropping earlier assistant text.
-  const args = ["claude", "-p", prompt, "--output-format", "json", ...securityArgs];
+  // Use stream-json to capture ALL assistant text blocks.
+  // Both --output-format text and json only return the last text segment
+  // (after the final tool call), silently dropping earlier assistant text.
+  // stream-json emits each event as NDJSON, so we collect every text block.
+  const args = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose", ...securityArgs];
 
   if (!isNew) {
     args.push("--resume", existing.sessionId);
@@ -282,22 +283,37 @@ async function execClaude(name: string, prompt: string): Promise<RunResult> {
     stdout = rateLimitMessage;
   }
 
-  // Parse JSON output to extract the full result text.
-  // json format always returns {session_id, result, ...} and the result
-  // field contains ALL assistant text segments concatenated, unlike text
-  // format which only emits the final segment after the last tool call.
+  // Parse stream-json NDJSON output: collect ALL assistant text blocks.
   if (!rateLimitMessage && exitCode === 0) {
     try {
-      const json = JSON.parse(rawStdout);
-      sessionId = json.session_id ?? sessionId;
-      stdout = json.result ?? "";
+      const textBlocks: string[] = [];
+      for (const line of rawStdout.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        let evt: any;
+        try { evt = JSON.parse(trimmed); } catch { continue; }
+
+        // Extract session_id from system or result events
+        if (evt.type === "system" || evt.type === "result") {
+          sessionId = evt.session_id ?? sessionId;
+        }
+
+        // Collect every assistant text block
+        if (evt.type === "assistant" && Array.isArray(evt.message?.content)) {
+          for (const block of evt.message.content) {
+            if (block.type === "text" && block.text) {
+              textBlocks.push(block.text);
+            }
+          }
+        }
+      }
+      stdout = textBlocks.join("\n\n");
       if (isNew) {
         await createSession(sessionId);
         console.log(`[${new Date().toLocaleTimeString()}] Session created: ${sessionId}`);
       }
     } catch (e) {
-      // If JSON parsing fails, fall back to raw stdout
-      console.error(`[${new Date().toLocaleTimeString()}] Failed to parse JSON output, using raw:`, e);
+      console.error(`[${new Date().toLocaleTimeString()}] Failed to parse stream-json output, using raw:`, e);
     }
   }
 
